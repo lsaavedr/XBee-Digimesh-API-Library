@@ -20,7 +20,12 @@
 #ifndef XBee_h
 #define XBee_h
 
-#include <WProgram.h>
+#if defined(ARDUINO) && ARDUINO >= 100
+	#include "Arduino.h"
+#else
+	#include "WProgram.h"
+#endif
+
 #include <inttypes.h>
 
 #define SERIES_1
@@ -76,8 +81,8 @@
 /**
  * Api Id constants
  */
-#define TX_64_REQUEST 0x00
-#define TX_16_REQUEST 0x10
+#define TX_64_REQUEST 0x0
+#define TX_16_REQUEST 0x1
 #define AT_COMMAND_REQUEST 0x08
 #define AT_COMMAND_QUEUE_REQUEST 0x09
 #define REMOTE_AT_REQUEST 0x17
@@ -98,12 +103,13 @@
 #define AT_COMMAND_RESPONSE 0x88
 #define REMOTE_AT_COMMAND_RESPONSE 0x97
 
-//DM added definitions
+// API Frame Names and Values Sent to the Module:
 #define AT_COMMAND 0x08
 #define AT_QUEUE_COMMAND 0x09
 #define TX_REQUEST 0x10
 #define EXPLICIT_TX_REQUEST 0x11
 #define REMOTE_AT_COMMAND_REQUEST 0x17
+// API Frame Names and Values Received from the Module:
 #define AT_COMMAND_REPONSE 0x88
 #define MODEM_STATUS_RESPONSE 0x8a
 #define TX_STATUS 0x8B
@@ -111,6 +117,7 @@
 #define EXPLICIT_RX_RESPONSE 0x91
 #define NODE_ID 0x95
 #define REMOTE_AT_COMMAND_RESPONSE 0x97
+
 #define RESERVED_LENGTH 2
 #define RADIUS 0x00
 #define RESERVED_1 0xFF
@@ -280,7 +287,7 @@ public:
 	Call with instance of DMRxResponse only if getApiId() == RX_RESPONSE
 	*/
 	void getDMRxResponse(XBeeResponse &response);
-	
+
 	void setAvailable(bool complete);
 	/**
 	 * Returns true if the response contains errors
@@ -322,6 +329,8 @@ public:
 	uint32_t getLsb();
 	void setMsb(uint32_t msb);
 	void setLsb(uint32_t lsb);
+	//bool operator==(XBeeAddress64 addr);
+	//bool operator!=(XBeeAddress64 addr);
 private:
 	uint32_t _msb;
 	uint32_t _lsb;
@@ -746,9 +755,9 @@ public:
 	 */
 	void readPacketUntilAvailable();
 	/**
-	 * Starts the serial connection at the supplied baud rate
+	 * Starts the serial connection on the specified serial port
 	 */
-	void begin(long baud);
+	void begin(Stream &serial);
 	void getResponse(XBeeResponse &response);
 	/**
 	 * Returns a reference to the current response
@@ -764,7 +773,15 @@ public:
 	 * Returns a sequential frame id between 1 and 255
 	 */
 	uint8_t getNextFrameId();
+	/**
+	 * Specify the serial port.  Only relevant for Arduinos that support multiple serial ports (e.g. Mega)
+	 */
+	void setSerial(Stream &serial);
 private:
+	bool available();
+	uint8_t read();
+	void flush();
+	void write(uint8_t val);
 	void sendByte(uint8_t b, bool escape);
 	void resetResponse();
 	XBeeResponse _response;
@@ -777,6 +794,7 @@ private:
 	uint8_t _nextFrameId;
 	// buffer for incoming RX packets.  holds only the api specific frame data, starting after the api id byte and prior to checksum
 	uint8_t _responseFrameData[MAX_FRAME_DATA_SIZE];
+	Stream* _serial;
 };
 
 /**
